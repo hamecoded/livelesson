@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>🔥 Firebin: Share text snippets - #1 paste tool using Firebase since December 18, 2012!</title>
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+  <script src="//cdn.firebase.com/v0/firebase.js"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/mustache.js/0.7.0/mustache.min.js"></script>
+  <script src="sha256.js"></script>
+  <script src="firebin.js"></script>
+  <link rel="stylesheet" type="text/css" href="firebin.css">
+</head>
+<body id="body">
+  <h1>Firebin</h1>
+
+  <div id="create" class="hidden">
+    <textarea class="bin" id="bin" placeholder="Paste text to share. A shareable link to view the text and stats will be created. Built using Firebase 100% client-side code only."></textarea>
+    <input id="title" class="title" type="text" placeholder="Optional title">
+    <button id="save">Save</button>
+  </div>
+
+  <div id="view" class="hidden">
+    <h3>{{title}}</h3>
+    <pre class="binbody">
+    {{body}}
+    </pre>
+    <small>
+      Created: {{date}} &middot;
+      View count: <span class="count" id="viewcount">0</span> &middot;
+      Current viewers: <span class="count" id="viewers">0</span>
+    </small>
+  </div>
+
+</body>
+</html>

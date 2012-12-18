@@ -1,0 +1,129 @@
+/* 
+  * Firebin: A simple client-side paste bin clone.
+  *
+  * Live demo: http://firebin.misc.firebase.com/
+  * An example bin: http://firebin.misc.firebase.com/#26ac13001217f8db10d720faf15870525275bab47e3a4fe6816881181f13973b
+  *
+  * In this example, we build on the the Firepano example that uses unguessable
+  * loactions to serve shared content. Like the Firepano example, we use the
+  * content as the hash into Firebase for storing the data that was uploaded.
+  * We add a couple of new features with this example: a view count as well as
+  * a count of the number of people currently viewing the page. We use
+  * transactions to properly increment the count value; we use the Firebase
+  * presence API to keep track of when people start viewing the page as well as
+  * when they browser off the page. A couple of new rules make sure we secure
+  * the new metadata.  
+  *
+  * The Firebase rules:
+
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "bin": {
+      "$bin": {
+       ".read": true,
+       ".write": "! data.exists()",
+       "bin": {
+        ".write": false
+       },
+       "metadata": {
+         ".write": "! data.exists()",
+         "views": {
+           ".validate": "(! data.exists() && newData.val() == 0) || (newData.isNumber())",
+           ".write": true
+         },
+         "viewer": {
+           "$viewer": {
+             ".write": true
+           }
+         }
+       }
+      }
+    }
+  }
+}
+
+ *
+ * Exercises for the reader:
+ *  1. Add security rules enforcing monotonically increasing counts.
+ *  2. Add a secret token allowing anonymous uploaders to delete a paste.
+ *  3. Add simple login using Singly to let users manage bins long term.
+ *
+ */
+
+var firebaseRef = new Firebase('https://firebin.firebaseio.com/');
+
+function saveFirebin() {
+  var firebinBody = $('#bin').val();
+  if(typeof firebinBody === 'undefined' || firebinBody == '')
+    return;
+
+  var firebinTitle = $('#title').val();
+  if(typeof firebinTitle === 'undefined') firebinTitle = '';
+
+  var firebinPayload = { body: firebinBody, title: firebinTitle, date: new Date().toString() };
+
+  var sha256 = CryptoJS.algo.SHA256.create();
+  sha256.update(firebinPayload.body);
+  sha256.update(firebinPayload.title);
+  sha256.update(firebinPayload.date);
+  sha256.update(Math.random().toString());
+  var hash = sha256.finalize();
+
+  var firebinMetadata = { views: 0 };
+
+  firebaseRef.child('bin/' + hash).set( { bin: firebinPayload, metadata: firebinMetadata }, function() {
+    window.location.hash = hash;
+    viewFirebin(hash); 
+  });
+}
+
+function viewFirebin(hash) {
+    $('#create').hide();
+
+    firebaseRef.child('bin/' + hash + '/bin').once('value', function(snapshot) {
+      var template = $('#view').html();
+      var bin = snapshot.val();
+      if(bin == null) {
+	bin = { title: 'Not found' };
+      }
+      else {
+	snapshot.ref().parent().child('metadata/views').on('value', function(snapshot) {
+		$('#viewcount').text(snapshot.val());
+	});
+	
+        // Only increment the stats if the hash was valid
+	snapshot.ref().parent().child('metadata/views').transaction(function(currentViews) { return currentViews + 1; });
+
+	// Add ourselves as a viewer of this Firebin and listen for changes
+	var viewer = snapshot.ref().parent().child('metadata/viewer').push(true);
+	viewer.removeOnDisconnect();
+	viewer.parent().on('value', function(snapshot) {
+		var count = snapshot.numChildren();
+		$('#viewers').text(count);
+	});
+      }
+      var html = Mustache.to_html(template, bin);
+       $('#view').html(html);
+       $('#view').show();
+    });
+}
+
+$(function() {
+
+  firebaseRef.child('.info/connected').once('value', function(s) { } );
+
+  var idx = window.location.href.indexOf('#');
+  var hash = (idx > 0) ? window.location.href.slice(idx + 1) : '';
+  if(hash === '') {
+    // No hash found, so render the file upload button
+    $('#create').show();
+    $('#save').on('click', saveFirebin);
+  }
+  else {
+    // A hash was passed in, so let's retrieve and render it
+    viewFirebin(hash);
+  }
+});
+

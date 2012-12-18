@@ -1,0 +1,31 @@
+body {
+  font-family: sans-serif;
+}
+
+small {
+  color: #c0c0c0;
+}
+
+.hidden {
+  display: none;
+}
+
+.title {
+  width: 23em;
+}
+
+.bin {
+  width: 95%;
+  height: 40em;
+  border: 3px solid #cccccc;
+  padding: 1em;
+}
+
+.binbody {
+  border: 1px dotted #cccccc;
+}
+
+.count {
+  color: orange;
+  font-weight: bold;
+}
