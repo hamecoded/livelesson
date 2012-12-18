@@ -1,0 +1,44 @@
+{
+  "rules": {
+    // Nobody should be able to read a bin unless they know the URL. 
+    ".read": false,
+    ".write": false,
+    "bin": {
+      "$bin": {
+        // If you know the bin ID (derived from the URL), $bin, read is allowed.
+        ".read": true,
+        // Overwriting an existing bin is not allowed.
+        ".write": "!data.exists()",
+        "bin": {
+          // Note that even if any *one* of the write rules, all the way back
+          // to the root of the tree evaluates to true, the write will be allowed.
+          // This is why we set the top-level .write to false, and we set it
+          // here again to make sure nobody writes directly to this location.
+          // For the creator of the bin, the write rule just above this will
+          // evaluate to true (since there wasn't one before), and the write
+          // will be allowed.
+          ".write": false
+        },
+        "metadata": {
+          // Overwriting metadata for an existing bin is not allowed.
+          ".write": "!data.exists()",
+          "views": {
+            // If this is a new bin, the count must be 0. Every change to the
+            // count must be a number.
+            ".validate": "(!data.exists() && newData.val() == 0) || (newData.isNumber())",
+            // If the validation fails, the write will not be allowed.
+            ".write": true
+          },
+          "viewer": {
+            // Anybody can mess with the current viewer set. Securing this is
+            // left as an excercise to the reader. (Hint: you'll need some
+            // way to identify every user).
+            "$viewer": {
+              ".write": true
+            }
+          }
+        }
+      }
+    }
+  }
+}
